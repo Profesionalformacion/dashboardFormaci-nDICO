@@ -1,0 +1,1830 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Integral de Formación y Certificaciones</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            900: '#7f1d1d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        .tab-active {
+            border-bottom: 2px solid #dc2626;
+            color: #dc2626;
+            font-weight: 700;
+        }
+        .dark .tab-active {
+            border-bottom: 2px solid #f87171;
+            color: #f87171;
+        }
+    </style>
+</head>
+<body class="bg-zinc-100 text-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 transition-colors duration-200 min-h-screen flex flex-col">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="bg-red-600 text-white p-2.5 rounded-xl shadow-sm">
+                        <i data-lucide="award" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-lg sm:text-xl font-bold tracking-tight text-zinc-900 dark:text-white">Centro de Control & Certificaciones</h1>
+                            <span class="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800">
+                                Corte: 17 Nov 2026
+                            </span>
+                        </div>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Consolidado Operativo: Indicador General • Excelencia • UTC • Grupos en Formación</p>
+                    </div>
+                </div>
+
+                <!-- Global Controls -->
+                <div class="flex items-center gap-2 self-end sm:self-auto">
+                    <button onclick="exportSummaryCSV()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-xs transition">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Exportar Reporte</span>
+                    </button>
+                    <button id="themeToggle" onclick="toggleTheme()" class="p-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 transition" title="Cambiar tema">
+                        <i data-lucide="moon" id="moonIcon" class="w-4 h-4"></i>
+                        <i data-lucide="sun" id="sunIcon" class="w-4 h-4 hidden"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex space-x-6 overflow-x-auto no-scrollbar pt-1" aria-label="Tabs">
+                <button onclick="switchTab('resumen')" id="tab-resumen" class="tab-btn tab-active whitespace-nowrap py-2.5 px-1 text-sm flex items-center gap-2 transition">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>Resumen & Cargos</span>
+                </button>
+                <button onclick="switchTab('alertas')" id="tab-alertas" class="tab-btn whitespace-nowrap py-2.5 px-1 text-sm text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-2 transition">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-red-600"></i>
+                    <span>Alertas & Vencimientos</span>
+                    <span class="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300">Crítico</span>
+                </button>
+                <button onclick="switchTab('campanas')" id="tab-campanas" class="tab-btn whitespace-nowrap py-2.5 px-1 text-sm text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-2 transition">
+                    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                    <span>Excelencia & Recertificación</span>
+                </button>
+                <button onclick="switchTab('oym')" id="tab-oym" class="tab-btn whitespace-nowrap py-2.5 px-1 text-sm text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-2 transition">
+                    <i data-lucide="network" class="w-4 h-4 text-red-600"></i>
+                    <span>Recertificaciones Red Externa (O&M)</span>
+                    <span class="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">276</span>
+                </button>
+                <button onclick="switchTab('formadores')" id="tab-formadores" class="tab-btn whitespace-nowrap py-2.5 px-1 text-sm text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-2 transition">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    <span>Grupos en Formación</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 py-3">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-center">
+                <!-- Área / Operación -->
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">Segmento Operativo</label>
+                    <select id="filterSegment" onchange="applyFilters()" class="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-red-600">
+                        <option value="ALL">Todos los Segmentos (Planta Activa)</option>
+                        <option value="OPERACIONES">Operaciones I&M / UMM (734)</option>
+                        <option value="OYM">Operación y Mantenimiento O&M (276)</option>
+                        <option value="FORMACION">En Formación / Ingresos (310)</option>
+                    </select>
+                </div>
+
+                <!-- Cargo -->
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">Filtrar por Cargo</label>
+                    <select id="filterCargo" onchange="applyFilters()" class="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-red-600">
+                        <option value="ALL">Todos los Cargos (10 Cargos)</option>
+                        <option value="Tecnico Instalaciones UMM Aliado">Técnico Instalaciones UMM Aliado</option>
+                        <option value="Auxiliar Operaciones Aliado">Auxiliar Operaciones Aliado</option>
+                        <option value="Tecnico Mantenimiento O&M Aliado">Técnico Mantenimiento O&M Aliado</option>
+                        <option value="Tecnico O&M Fijo Aliado">Técnico O&M Fijo Aliado</option>
+                        <option value="Tecnico Empalmador Aliado">Técnico Empalmador Aliado</option>
+                        <option value="Auxiliar O&M Aliado">Auxiliar O&M Aliado</option>
+                        <option value="Medidor / Recorredor O&M">Medidor / Recorredor O&M</option>
+                        <option value="Supervisor UMM / Operaciones">Supervisor UMM / Operaciones</option>
+                        <option value="Conductor / Auxiliar Conductor">Conductor / Auxiliar Conductor</option>
+                        <option value="Tecnico Auxiliar (Grupos Ingreso)">Técnico Auxiliar (Grupos Ingreso)</option>
+                    </select>
+                </div>
+
+                <!-- Estado de Certificación -->
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">Estado de Certificación</label>
+                    <select id="filterStatus" onchange="applyFilters()" class="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-red-600">
+                        <option value="ALL">Todos los Estados</option>
+                        <option value="VIGENTE">Vigente (> 30 días)</option>
+                        <option value="PROXIMO">Próximo a Vencer (1 - 30 días)</option>
+                        <option value="VENCIDO">Vencido (Mora activa)</option>
+                        <option value="SIN_HISTORIAL">Sin Historial / Pendiente</option>
+                    </select>
+                </div>
+
+                <!-- Buscador Rápido -->
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">Búsqueda Rápida</label>
+                    <div class="relative">
+                        <i data-lucide="search" class="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-2.5"></i>
+                        <input type="text" id="searchInput" onkeyup="applyFilters()" placeholder="Cédula, nombre, cargo..." class="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 pl-8 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-red-600">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- ===================================================================== -->
+        <!-- TAB 1: RESUMEN EJECUTIVO & CUMPLIMIENTO POR CARGOS                    -->
+        <!-- ===================================================================== -->
+        <section id="view-resumen" class="space-y-6">
+            
+            <!-- KPI Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <!-- KPI 1 -->
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Planta Activa SSFF</span>
+                        <span class="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                            <i data-lucide="users" class="w-4 h-4"></i>
+                        </span>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-2">
+                        <h2 id="kpi-vigente-pct" class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">77.1%</h2>
+                        <span id="kpi-vigente-num" class="text-xs font-medium text-zinc-500">(1,018 pers.)</span>
+                    </div>
+                    <div class="mt-2 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-1.5">
+                        <div id="kpi-vigente-bar" class="bg-emerald-500 h-1.5 rounded-full" style="width: 77.1%"></div>
+                    </div>
+                </div>
+
+                <!-- KPI 3 -->
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Próximos a Vencer</span>
+                        <span class="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
+                            <i data-lucide="clock" class="w-4 h-4"></i>
+                        </span>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-2">
+                        <h2 id="kpi-proximo-num" class="text-2xl font-extrabold text-amber-600 dark:text-amber-400">112</h2>
+                        <span id="kpi-proximo-pct" class="text-xs font-medium text-zinc-500">(8.5%)</span>
+                    </div>
+                    <p class="mt-1 text-[11px] text-zinc-400">Vencen en los próximos 1 a 30 días</p>
+                </div>
+
+                <!-- KPI 4 -->
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-red-200 dark:border-red-900/60 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-red-700 dark:text-red-400">Certificación Vencida</span>
+                        <span class="p-2 rounded-xl bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400">
+                            <i data-lucide="alert-octagon" class="w-4 h-4"></i>
+                        </span>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-2">
+                        <h2 id="kpi-vencido-num" class="text-2xl font-extrabold text-red-600 dark:text-red-400">100</h2>
+                        <span id="kpi-vencido-pct" class="text-xs font-semibold text-red-600">(7.6%)</span>
+                    </div>
+                    <p class="mt-1 text-[11px] text-zinc-500">Concentrado en O&M (hasta 63d mora)</p>
+                </div>
+
+                <!-- KPI 5 -->
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Sin Historial / Pend.</span>
+                        <span class="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+                            <i data-lucide="help-circle" class="w-4 h-4"></i>
+                        </span>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-2">
+                        <h2 id="kpi-sin-num" class="text-2xl font-extrabold text-zinc-600 dark:text-zinc-300">90</h2>
+                        <span id="kpi-sin-pct" class="text-xs font-medium text-zinc-500">(6.8%)</span>
+                    </div>
+                    <p class="mt-1 text-[11px] text-zinc-400">Requieren cruce o citación inicial</p>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Stacked Horizontal Bar Chart: Estado por Cargo -->
+                <div class="lg:col-span-2 bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <div>
+                            <h3 class="text-base font-bold text-zinc-900 dark:text-white">Estado de Certificación por Cargo Operativo</h3>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Distribución porcentual y volumétrica de vigencia por rol técnico (incluye Auxiliar O&M Aliado)</p>
+                        </div>
+                        <div class="inline-flex rounded-xl bg-zinc-100 dark:bg-zinc-800 p-1 text-xs">
+                            <button onclick="setChartMode('percent')" id="btn-mode-pct" class="px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-700 shadow-xs font-semibold text-zinc-900 dark:text-white transition">% Cumplimiento</button>
+                            <button onclick="setChartMode('count')" id="btn-mode-cnt" class="px-2.5 py-1 rounded-lg text-zinc-500 dark:text-zinc-400 font-medium transition">Cantidad</button>
+                        </div>
+                    </div>
+                    <div class="relative h-80 w-full">
+                        <canvas id="cargoChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Doughnut Chart: Distribución Global -->
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-zinc-900 dark:text-white">Composición General</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Población activa consolidada SSFF (1,320 colaboradores)</p>
+                    </div>
+                    <div class="relative h-56 w-full my-2 flex items-center justify-center">
+                        <canvas id="statusDoughnutChart"></canvas>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                            <span class="text-zinc-600 dark:text-zinc-300">Vigente: <strong>77.1%</strong></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                            <span class="text-zinc-600 dark:text-zinc-300">Por vencer: <strong>8.5%</strong></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
+                            <span class="text-zinc-600 dark:text-zinc-300">Vencido: <strong>7.6%</strong></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-zinc-400 dark:bg-zinc-600"></span>
+                            <span class="text-zinc-600 dark:text-zinc-300">Sin historial: <strong>6.8%</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Matrix Table by Cargo -->
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs overflow-hidden">
+                <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-base font-bold text-zinc-900 dark:text-white">Matriz Detallada de Cumplimiento por Cargo</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Desglose de cobertura, brechas de vencimiento y nivel de riesgo frente a la meta operativa (90%)</p>
+                    </div>
+                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-900">
+                        <i data-lucide="target" class="w-3.5 h-3.5"></i>
+                        Meta SLA: ≥ 90% Vigente
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-zinc-50 dark:bg-zinc-800/60 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
+                                <th class="py-3.5 px-4">Cargo Operativo</th>
+                                <th class="py-3.5 px-3">Área</th>
+                                <th class="py-3.5 px-3 text-right">Total</th>
+                                <th class="py-3.5 px-3 text-right text-zinc-800 dark:text-zinc-200">Vigentes</th>
+                                <th class="py-3.5 px-3 text-right text-zinc-600 dark:text-zinc-400">Próx. 30d</th>
+                                <th class="py-3.5 px-3 text-right text-red-600 dark:text-red-400">Vencidos</th>
+                                <th class="py-3.5 px-3 text-right">Sin Hist.</th>
+                                <th class="py-3.5 px-4 w-48">% Cumplimiento</th>
+                                <th class="py-3.5 px-4 text-center">Nivel Riesgo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cargoTableBody" class="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                        <tfoot id="cargoTableFoot" class="bg-zinc-50 dark:bg-zinc-800/80 font-bold text-xs border-t-2 border-zinc-200 dark:border-zinc-700">
+                            <!-- Totals populated dynamically -->
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- TAB 2: ALERTAS CRÍTICAS & LISTADO NOMINAL DE VENCIMIENTOS             -->
+        <!-- ===================================================================== -->
+        <section id="view-alertas" class="hidden space-y-6">
+            <!-- Alert Banner -->
+            <div class="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-start gap-3">
+                    <div class="p-2 rounded-xl bg-red-100 dark:bg-red-900/60 text-red-600 dark:text-red-300 mt-0.5">
+                        <i data-lucide="siren" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-red-900 dark:text-red-200">Prioridad de Citación Inmediata (Operaciones & O&M)</h3>
+                        <p class="text-xs text-red-800 dark:text-red-300 mt-0.5">
+                            Se detectaron técnicos y auxiliares de <strong>O&M con hasta 63 días vencidos</strong> y personal de <strong>Operaciones UMM que vence entre 3 y 8 días</strong>. La pestaña <code>CITACIONES_FORMACION</code> requiere carga urgente.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex gap-2 shrink-0">
+                    <button onclick="filterNominalAlert('VENCIDO')" class="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-xs transition">
+                        Ver Vencidos
+                    </button>
+                    <button onclick="filterNominalAlert('PROXIMO')" class="px-3 py-1.5 rounded-xl bg-zinc-700 hover:bg-zinc-800 text-white text-xs font-semibold shadow-xs transition">
+                        Ver Próx. 30d
+                    </button>
+                    <button onclick="filterNominalAlert('ALL')" class="px-3 py-1.5 rounded-xl bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold transition">
+                        Todos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Nominal Alerts Table -->
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs overflow-hidden">
+                <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-base font-bold text-zinc-900 dark:text-white">Registro Nominal de Alertas Críticas (Muestra Auditada)</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Personal extraído de <code>PERSONAL ACTIVO OPERACIONES</code> y <code>PERSONAL ACTIVO O&M</code> con acción requerida</p>
+                    </div>
+                    <span id="nominalCountBadge" class="text-xs font-semibold px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                        Mostrando 24 registros críticos
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-zinc-50 dark:bg-zinc-800/60 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
+                                <th class="py-3 px-4">Cédula</th>
+                                <th class="py-3 px-4">Colaborador</th>
+                                <th class="py-3 px-3">Cargo SSFF</th>
+                                <th class="py-3 px-3">Área</th>
+                                <th class="py-3 px-3">Certificación Actual</th>
+                                <th class="py-3 px-3">Vencimiento</th>
+                                <th class="py-3 px-3">Estado / Días</th>
+                                <th class="py-3 px-4 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="nominalTableBody" class="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- TAB 3: CAMPAÑAS DE EXCELENCIA CICLO 5 & RECERTIFICACIÓN AL CARGO       -->
+        <!-- ===================================================================== -->
+        <section id="view-campanas" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- Card Excelencia Ciclo 5 -->
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-4">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">Campaña Masiva</span>
+                            <h3 class="text-lg font-bold text-zinc-900 dark:text-white mt-2">Excelencia Operativa — Ciclo 5</h3>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Base: <code>CONTROL Y SEGUIMIENTOS FORMADORES</code> (741 evaluables)</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-3xl font-extrabold text-red-600 dark:text-red-400">49.1%</span>
+                            <p class="text-[11px] text-zinc-400">Tasa de Certificación</p>
+                        </div>
+                    </div>
+
+                    <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-3 overflow-hidden flex">
+                        <div class="bg-emerald-500 h-3" style="width: 49.1%" title="Certificados: 364"></div>
+                        <div class="bg-red-600 h-3" style="width: 50.9%" title="Pendientes: 377"></div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 pt-2">
+                        <div class="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800">
+                            <p class="text-[11px] text-zinc-500">Total Evaluados</p>
+                            <p class="text-lg font-bold text-zinc-900 dark:text-white">741</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                            <p class="text-[11px] text-zinc-600 dark:text-zinc-300">Certificados (SÍ)</p>
+                            <p class="text-lg font-bold text-zinc-900 dark:text-white">364</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/50">
+                            <p class="text-[11px] text-red-700 dark:text-red-400">Pendientes / No Pres.</p>
+                            <p class="text-lg font-bold text-red-700 dark:text-red-300">377</p>
+                        </div>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-700 dark:text-zinc-300 space-y-1">
+                        <p class="font-semibold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                            <i data-lucide="info" class="w-4 h-4 text-red-600"></i> Observación de Calidad & Desempeño:
+                        </p>
+                        <p>• El 100% de los 364 técnicos que presentaron la prueba aprobaron con notas entre <strong>90% y 100%</strong> (promedio 95.3%).</p>
+                        <p>• La brecha del <strong>50.9% (377 técnicos)</strong> corresponde a ausentismo o falta de programación en plataforma.</p>
+                    </div>
+                </div>
+
+                <!-- Card Recertificación al Cargo -->
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-xs space-y-4">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">Renovación Anual</span>
+                            <h3 class="text-lg font-bold text-zinc-900 dark:text-white mt-2">Recertificaciones al Cargo</h3>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">Base: <code>RECERTIFICACIONENS AL CARGO</code> (128 filas / 90 resumen)</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-3xl font-extrabold text-zinc-900 dark:text-white">74.4%</span>
+                            <p class="text-[11px] text-zinc-400">Sobre cuadro resumen (90)</p>
+                        </div>
+                    </div>
+
+                    <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-3 overflow-hidden flex">
+                        <div class="bg-emerald-500 h-3" style="width: 74.4%" title="Certificados: 67"></div>
+                        <div class="bg-red-600 h-3" style="width: 25.6%" title="Pendientes: 23"></div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 pt-2">
+                        <div class="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-100 dark:border-zinc-800">
+                            <p class="text-[11px] text-zinc-500">Registros Base</p>
+                            <p class="text-lg font-bold text-zinc-900 dark:text-white">128</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-zinc-100 dark:bg-zinc-800">
+                            <p class="text-[11px] text-zinc-600 dark:text-zinc-300">Certificados (SÍ)</p>
+                            <p class="text-lg font-bold text-zinc-900 dark:text-white">67</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/50">
+                            <p class="text-[11px] text-red-700 dark:text-red-400">Diferencia Auditoría</p>
+                            <p class="text-lg font-bold text-red-700 dark:text-red-300">38</p>
+                        </div>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-red-50/70 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-xs text-zinc-700 dark:text-zinc-300 space-y-1">
+                        <p class="font-semibold text-red-900 dark:text-red-200 flex items-center gap-1.5">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-red-600"></i> Hallazgo de Auditoría de Datos:
+                        </p>
+                        <p>• Existen <strong>128 filas</strong> en la hoja base vs. <strong>90 contabilizadas</strong> en el cuadro resumen (67 aprobados + 23 pendientes).</p>
+                        <p>• Se detectaron registros duplicados (ej. cédula <code>1023015972</code>) y notas entre <strong>91 y 100 pts</strong> distribuidas en Técnicos UMM, Supervisores y Auxiliares.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart: Comparativa por Tipo de Cargo en Campañas -->
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+                <h3 class="text-base font-bold text-zinc-900 dark:text-white mb-1">Distribución de Resultados en Campañas por Perfil</h3>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mb-4">Comparativa entre aprobados y pendientes en Excelencia Ciclo 5 y Recertificación</p>
+                <div class="relative h-72 w-full">
+                    <canvas id="campaignsChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- TAB 3.5: RECERTIFICACIONES RED EXTERNA (O&M)                          -->
+        <!-- ===================================================================== -->
+        <section id="view-oym" class="hidden space-y-6">
+            
+            <!-- Banner Ejecutivo Red Externa O&M -->
+            <div class="bg-zinc-900 text-white rounded-2xl p-5 border border-zinc-800 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-600 text-white">
+                            RED EXTERNA • PLANTA O&M (276 COLABORADORES)
+                        </span>
+                        <span class="text-xs text-zinc-400">Fuente: <code>PERSONAL ACTIVO O&M</code> (Indicador General)</span>
+                    </div>
+                    <h2 class="text-lg sm:text-xl font-bold">Estado de Recertificación — Operación y Mantenimiento</h2>
+                    <p class="text-xs text-zinc-300 max-w-3xl">
+                        Consolidado exclusivo de perfiles de Red Externa (Técnico Mantenimiento O&M, Técnico O&M Fijo, Técnico Empalmador Aliado, Auxiliar O&M Aliado y Medidor/Recorredor O&M) con control de vigencia y días de mora.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-2 shrink-0">
+                    <button onclick="exportOYMCSV()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                        <span>Exportar Plan Choque O&M</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPIs Específicos Red Externa O&M -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total Planta Red Externa</span>
+                        <span class="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                            <i data-lucide="network" class="w-4 h-4"></i>
+                        </span>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-2">
+                        <h3 class="text-2xl font-extrabold text-zinc-900 dark:text-white">276</h3>
+                        <span class="text-xs font-medium text-zinc-500">5 cargos O&M</span>
+                    </div>
+                    <p class="mt-1 text-[11px] text-zinc-400">Incluye Auxiliar O&M Aliado (18 pers.)</p>
+                </div>
+
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Recertificación Vigente</span>
+                        <span class="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i>
+                        </span>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-2">
+                        <h3 class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">57.6%</h3>
+                        <span class="text-xs font-medium text-zinc-500">(159 pers.)</span>
+                    </div>
+                    <div class="mt-2 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-1.5">
+                        <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 57.6%"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-red-200 dark:border-red-900/60 shadow-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-red-700 dark:text-red-400">Vencidos en Mora (VEN)</span>
+                        <span class="p-2 rounded-xl bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400">
+                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                        </span>
+                    </div>
+                    <div class="mt-3 flex items-baseline gap-2">
+                        <h3 class="text-2xl font-extrabold text-red-600 dark:text-red-400">78</h3>
+                        <span class="text-xs font-bold text-red-600">(28.3% mora)</span>
+                    </div>
+                    <p class="mt-1 text-[11px] text-red-600">Mora máxima: 63 días (15/09/2026)</p>
+                </div>
+            </div>
+
+            <!-- Gráficos de Red Externa O&M -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Barras por Cargo O&M -->
+                <div class="lg:col-span-2 bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+                    <div class="mb-4">
+                        <h3 class="text-base font-bold text-zinc-900 dark:text-white">Desglose de Recertificación por Cargo O&M</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Comparativa de técnicos y auxiliares vigentes, próximos a vencer y vencidos en Red Externa</p>
+                    </div>
+                    <div class="relative h-64 w-full">
+                        <canvas id="oymCargoChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Distribución por Tipo de Certificación O&M -->
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-zinc-900 dark:text-white">Certificaciones Red Externa O&M</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Distribución por línea de certificación</p>
+                    </div>
+                    <div class="relative h-48 w-full my-2">
+                        <canvas id="oymCalibChart"></canvas>
+                    </div>
+                    <div class="space-y-1.5 pt-3 border-t border-zinc-100 dark:border-zinc-800 text-xs">
+                        <div class="flex justify-between">
+                            <span class="text-zinc-500">Cert. Técnico Mantenimiento / O&M 2025:</span>
+                            <span class="font-bold text-zinc-800 dark:text-zinc-200">210 pers.</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-zinc-500">Cert. Empalmador Fibra Óptica:</span>
+                            <span class="font-bold text-zinc-800 dark:text-zinc-200">36 pers.</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-zinc-500">Cert. Auxiliar O&M Aliado:</span>
+                            <span class="font-bold text-zinc-800 dark:text-zinc-200">18 pers.</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-zinc-500">Cert. Medidor / Recorredor O&M:</span>
+                            <span class="font-bold text-zinc-800 dark:text-zinc-200">12 pers.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla Nominal Exclusiva Red Externa O&M -->
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs overflow-hidden">
+                <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-base font-bold text-zinc-900 dark:text-white">Listado Nominal de Recertificación — Red Externa (O&M)</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Detalle auditado de <code>PERSONAL ACTIVO O&M</code> con días de vencimiento y control de duplicados</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select id="oymFilterCargo" onchange="renderOYMTable()" class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-red-600">
+                            <option value="ALL">Todos los Cargos O&M</option>
+                            <option value="Tecnico Mantenimiento O&M Aliado">Técnico Mantenimiento O&M Aliado</option>
+                            <option value="Tecnico O&M Fijo Aliado">Técnico O&M Fijo Aliado</option>
+                            <option value="Tecnico Empalmador Aliado">Técnico Empalmador Aliado</option>
+                            <option value="Auxiliar O&M Aliado">Auxiliar O&M Aliado</option>
+                            <option value="Medidor / Recorredor O&M">Medidor / Recorredor O&M</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-zinc-50 dark:bg-zinc-800/60 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
+                                <th class="py-3 px-4">Cédula</th>
+                                <th class="py-3 px-4">Colaborador Red Externa</th>
+                                <th class="py-3 px-3">Cargo SSFF (O&M)</th>
+                                <th class="py-3 px-3">Certificación O&M</th>
+                                <th class="py-3 px-3">Fecha Cert.</th>
+                                <th class="py-3 px-3">Vencimiento</th>
+                                <th class="py-3 px-3">Alerta / Mora</th>
+                                <th class="py-3 px-4 text-right">Citación</th>
+                            </tr>
+                        </thead>
+                        <tbody id="oymTableBody" class="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================== -->
+        <!-- TAB 4: GRUPOS EN FORMACIÓN (G41-G44) & CONTROL DE ASISTENCIA          -->
+        <!-- ===================================================================== -->
+        <section id="view-formadores" class="hidden space-y-6">
+            
+            <!-- Cohortes Activas Cards -->
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <h3 class="text-base font-bold text-zinc-900 dark:text-white">Seguimiento de Grupos en Formación Activos (`Control asistencias`)</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Ruta de 16 días (14 módulos + Alturas + Primer Intento de Certificación)</p>
+                    </div>
+                    <span class="text-xs font-semibold px-3 py-1 rounded-full bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                        Total en Grupos: 74 Técnicos
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- G41 -->
+                    <div onclick="selectGroupAttendance('G41')" class="cursor-pointer bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-red-500 shadow-xs flex flex-col justify-between transition">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-extrabold text-red-600 dark:text-red-400">GRUPO G41</span>
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">Cierre Pendiente</span>
+                            </div>
+                            <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-1">Formador: Jolman Talero</p>
+                            <p class="text-[11px] text-zinc-500 mt-0.5">Ingreso: 19/10/2026 • 1er Intento: 10/11/2026</p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-zinc-500">Avance Módulos</span>
+                                <span class="font-bold text-zinc-800 dark:text-white">15 / 16 días (94%)</span>
+                            </div>
+                            <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-1.5">
+                                <div class="bg-red-600 h-1.5 rounded-full" style="width: 94%"></div>
+                            </div>
+                            <p class="text-[11px] text-red-600 dark:text-red-400 mt-2">25 técnicos • Click para ver asistencia</p>
+                        </div>
+                    </div>
+
+                    <!-- G42 -->
+                    <div onclick="selectGroupAttendance('G42')" class="cursor-pointer bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-red-500 shadow-xs flex flex-col justify-between transition">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-extrabold text-zinc-900 dark:text-white">GRUPO G42</span>
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">Certificando Hoy</span>
+                            </div>
+                            <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-1">Formador: Miguel González</p>
+                            <p class="text-[11px] text-zinc-500 mt-0.5">Ingreso: 23/10/2026 • 1er Intento: 17/11/2026</p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-zinc-500">Avance Módulos</span>
+                                <span class="font-bold text-zinc-800 dark:text-white">13 / 16 días (81%)</span>
+                            </div>
+                            <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-1.5">
+                                <div class="bg-zinc-800 dark:bg-zinc-200 h-1.5 rounded-full" style="width: 81%"></div>
+                            </div>
+                            <p class="text-[11px] text-zinc-500 mt-2">14 técnicos • Click para ver asistencia</p>
+                        </div>
+                    </div>
+
+                    <!-- G43 -->
+                    <div onclick="selectGroupAttendance('G43')" class="cursor-pointer bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-red-500 shadow-xs flex flex-col justify-between transition">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-extrabold text-zinc-900 dark:text-white">GRUPO G43</span>
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">En Curso</span>
+                            </div>
+                            <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-1">Formador: Duber Muñoz</p>
+                            <p class="text-[11px] text-zinc-500 mt-0.5">Ingreso: 30/10/2026 • 1er Intento: 24/11/2026</p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-zinc-500">Avance Módulos</span>
+                                <span class="font-bold text-zinc-800 dark:text-white">11 / 16 días (69%)</span>
+                            </div>
+                            <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-1.5">
+                                <div class="bg-zinc-700 dark:bg-zinc-300 h-1.5 rounded-full" style="width: 69%"></div>
+                            </div>
+                            <p class="text-[11px] text-zinc-500 mt-2">22 técnicos • Click para ver asistencia</p>
+                        </div>
+                    </div>
+
+                    <!-- G44 -->
+                    <div onclick="selectGroupAttendance('G44')" class="cursor-pointer bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200 dark:border-zinc-800 hover:border-red-500 shadow-xs flex flex-col justify-between transition">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-extrabold text-zinc-900 dark:text-white">GRUPO G44</span>
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">En Curso</span>
+                            </div>
+                            <p class="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-1">Formador: Nestor Basante</p>
+                            <p class="text-[11px] text-zinc-500 mt-0.5">Ingreso: 09/11/2026 • 1er Intento: 01/12/2026</p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-zinc-500">Avance Módulos</span>
+                                <span class="font-bold text-zinc-800 dark:text-white">6 / 16 días (38%)</span>
+                            </div>
+                            <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-1.5">
+                                <div class="bg-zinc-600 dark:bg-zinc-400 h-1.5 rounded-full" style="width: 38%"></div>
+                            </div>
+                            <p class="text-[11px] text-zinc-500 mt-2">13 técnicos • Click para ver asistencia</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Productividad Formadores UTC & Embudo Histórico -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Chart Formadores UTC -->
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs">
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <h3 class="text-base font-bold text-zinc-900 dark:text-white">Sesiones Reportadas en UTC por Formador</h3>
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400">159 registros del 20/10/2026 al 17/11/2026 (datos depurados)</p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-900">
+                            1 anomalía corregida (ID 14079)
+                        </span>
+                    </div>
+                    <div class="relative h-64 w-full">
+                        <canvas id="utcTrainersChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Embudo Histórico de Formación -->
+                <div class="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-zinc-900 dark:text-white">Embudo Histórico de Incorporación (`PERSONAL EN FORMACION`)</h3>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">Conversión desde curso de alturas hasta entrega efectiva a operación</p>
+                    </div>
+
+                    <div class="space-y-4 my-4">
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span>1. Entregados a la Operación (Mayo - Nov 2026)</span>
+                                <span class="text-zinc-900 dark:text-white">543 técnicos (94.6%)</span>
+                            </div>
+                            <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2.5">
+                                <div class="bg-zinc-900 dark:bg-zinc-100 h-2.5 rounded-full" style="width: 94.6%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span>2. Ingresos Trazados en Formación (Dico: 155, Solutec: 8, Capired: 7, Otros)</span>
+                                <span class="text-zinc-700 dark:text-zinc-300">274 registros</span>
+                            </div>
+                            <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2.5">
+                                <div class="bg-zinc-600 h-2.5 rounded-full" style="width: 68%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span>3. Personal Curso de Alturas (Proyecto Masivo)</span>
+                                <span class="text-zinc-600 dark:text-zinc-400">237 registros</span>
+                            </div>
+                            <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2.5">
+                                <div class="bg-zinc-500 h-2.5 rounded-full" style="width: 58%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span>4. Deserción / Retiros Tempranos (Abandono, Periodo Prueba, Renuncia)</span>
+                                <span class="text-red-600 dark:text-red-400">31 bajas (5.4%)</span>
+                            </div>
+                            <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2.5">
+                                <div class="bg-red-600 h-2.5 rounded-full" style="width: 12%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-[11px] text-zinc-500 dark:text-zinc-400 pt-2 border-t border-zinc-100 dark:border-zinc-800 flex justify-between">
+                        <span>Aliados activos: <strong>Dico, Zenix, Iconred, Capired, Solutec</strong></span>
+                        <span>Tasa retención formación: <strong>94.6%</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NUEVA SECCIÓN INFERIOR: VISUALIZADOR INTERACTIVO DE ASISTENCIA POR GRUPO -->
+            <div id="attendanceMatrixSection" class="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs overflow-hidden">
+                <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50/70 dark:bg-zinc-800/40">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-red-600 text-white uppercase">Control Diario</span>
+                            <h3 class="text-base font-bold text-zinc-900 dark:text-white">Matriz de Asistencia Modular por Grupo</h3>
+                        </div>
+                        <p id="attendanceGroupSubtitle" class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                            Selecciona un grupo de formación para auditar asistencia diaria (SI), llegadas tarde (TD), incapacidades (INC) e inasistencias (NO)
+                        </p>
+                    </div>
+
+                    <!-- Lista desplegable para seleccionar el grupo -->
+                    <div class="flex items-center gap-3">
+                        <label for="groupSelector" class="text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300 whitespace-nowrap">
+                            Seleccionar Grupo:
+                        </label>
+                        <select id="groupSelector" onchange="renderGroupAttendanceTable()" class="rounded-xl border-2 border-red-600 bg-white dark:bg-zinc-900 px-4 py-2 text-xs font-bold text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <option value="G41">Grupo G41 — Jolman Talero (Ingreso 19/10)</option>
+                            <option value="G42">Grupo G42 — Miguel González (Ingreso 23/10)</option>
+                            <option value="G43" selected>Grupo G43 — Duber Muñoz (Ingreso 30/10)</option>
+                            <option value="G44">Grupo G44 — Nestor Basante (Ingreso 09/11)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Resumen Rápido del Grupo Seleccionado -->
+                <div id="groupAttendanceSummary" class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-zinc-50 dark:bg-zinc-950/50 border-b border-zinc-200 dark:border-zinc-800 text-xs">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- Leyenda de Convenciones -->
+                <div class="px-5 py-2.5 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 flex flex-wrap items-center gap-4 text-[11px] text-zinc-500">
+                    <span class="font-semibold text-zinc-700 dark:text-zinc-300">Convenciones:</span>
+                    <span class="inline-flex items-center gap-1"><span class="px-1.5 py-0.5 rounded bg-zinc-800 text-white font-bold text-[10px]">SI</span> Asistió</span>
+                    <span class="inline-flex items-center gap-1"><span class="px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-800 font-bold text-[10px]">TD</span> Tarde</span>
+                    <span class="inline-flex items-center gap-1"><span class="px-1.5 py-0.5 rounded bg-zinc-300 text-zinc-900 font-bold text-[10px]">INC</span> Incapacidad</span>
+                    <span class="inline-flex items-center gap-1"><span class="px-1.5 py-0.5 rounded bg-red-600 text-white font-bold text-[10px]">NO</span> Inasistencia</span>
+                    <span class="inline-flex items-center gap-1"><span class="px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-400 font-bold text-[10px]">-</span> Pendiente / Por cursar</span>
+                </div>
+
+                <!-- Tabla de Asistencia por Grupo -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr id="groupAttendanceHead" class="bg-zinc-100 dark:bg-zinc-800/80 text-[10px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-700">
+                                <!-- Populated dynamically -->
+                            </tr>
+                        </thead>
+                        <tbody id="groupAttendanceBody" class="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Custom Modal for Action / Citation Preview -->
+    <div id="actionModal" class="fixed inset-0 z-50 hidden bg-zinc-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-zinc-900 rounded-2xl max-w-md w-full p-6 border border-zinc-200 dark:border-zinc-800 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h4 class="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="calendar-plus" class="w-5 h-5 text-red-600"></i>
+                    <span>Generar Registro para CITACIONES_FORMACION</span>
+                </h4>
+                <button onclick="closeModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="modalContent" class="text-xs text-zinc-600 dark:text-zinc-300 space-y-2 bg-zinc-50 dark:bg-zinc-800/60 p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                <!-- Dynamic content -->
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeModal()" class="px-3.5 py-2 rounded-xl text-xs font-medium bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200">
+                    Cerrar
+                </button>
+                <button onclick="copyCitationRow()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white flex items-center gap-1.5">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    <span id="copyBtnText">Copiar Fila para Sheets</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // =========================================================================
+        // 1. DATASET CONSOLIDADO (Sin columna calibración y con Auxiliar O&M Aliado)
+        // =========================================================================
+        const cargoMetricsData = [
+            {
+                cargo: "Tecnico Instalaciones UMM Aliado",
+                segment: "OPERACIONES",
+                total: 528,
+                vigente: 446,
+                proximo: 54,
+                vencido: 12,
+                sinHistorial: 16,
+                riesgo: "MEDIO"
+            },
+            {
+                cargo: "Auxiliar Operaciones Aliado",
+                segment: "OPERACIONES",
+                total: 158,
+                vigente: 132,
+                proximo: 18,
+                vencido: 3,
+                sinHistorial: 5,
+                riesgo: "BAJO"
+            },
+            {
+                cargo: "Tecnico Mantenimiento O&M Aliado",
+                segment: "OYM",
+                total: 142,
+                vigente: 81,
+                proximo: 11,
+                vencido: 42,
+                sinHistorial: 8,
+                riesgo: "CRÍTICO"
+            },
+            {
+                cargo: "Tecnico O&M Fijo Aliado",
+                segment: "OYM",
+                total: 68,
+                vigente: 37,
+                proximo: 6,
+                vencido: 21,
+                sinHistorial: 4,
+                riesgo: "CRÍTICO"
+            },
+            {
+                cargo: "Tecnico Empalmador Aliado",
+                segment: "OYM",
+                total: 36,
+                vigente: 23,
+                proximo: 3,
+                vencido: 8,
+                sinHistorial: 2,
+                riesgo: "ALTO"
+            },
+            {
+                cargo: "Auxiliar O&M Aliado",
+                segment: "OYM",
+                total: 18,
+                vigente: 11,
+                proximo: 1,
+                vencido: 4,
+                sinHistorial: 2,
+                riesgo: "ALTO"
+            },
+            {
+                cargo: "Medidor / Recorredor O&M",
+                segment: "OYM",
+                total: 12,
+                vigente: 7,
+                proximo: 1,
+                vencido: 3,
+                sinHistorial: 1,
+                riesgo: "ALTO"
+            },
+            {
+                cargo: "Supervisor UMM / Operaciones",
+                segment: "OPERACIONES",
+                total: 48,
+                vigente: 41,
+                proximo: 4,
+                vencido: 1,
+                sinHistorial: 2,
+                riesgo: "BAJO"
+            },
+            {
+                cargo: "Conductor / Auxiliar Conductor",
+                segment: "FORMACION",
+                total: 224,
+                vigente: 188,
+                proximo: 14,
+                vencido: 6,
+                sinHistorial: 16,
+                riesgo: "BAJO"
+            },
+            {
+                cargo: "Tecnico Auxiliar (Grupos Ingreso)",
+                segment: "FORMACION",
+                total: 86,
+                vigente: 52,
+                proximo: 0,
+                vencido: 0,
+                sinHistorial: 34,
+                riesgo: "MEDIO"
+            }
+        ];
+
+        // Muestra nominal real auditada desde Indicador General (Operaciones + O&M incluyendo Auxiliar O&M Aliado)
+        const nominalAlertsData = [
+            { cedula: "1032412817", nombre: "MIGUEL ANGEL BARBERI SANCHEZ", cargo: "Tecnico Mantenimiento O&M Aliado", area: "OYM", cert: "Certificación Técnico Mantenimiento", fechaCert: "15/09/2025", vencimiento: "15/09/2026", dias: -63, estado: "VENCIDO", novedad: "Mora crítica" },
+            { cedula: "1099546275", nombre: "EDINSON CASTILLO LIZARAZO", cargo: "Tecnico Mantenimiento O&M Aliado", area: "OYM", cert: "Certificación Técnico Mantenimiento", fechaCert: "15/09/2025", vencimiento: "15/09/2026", dias: -63, estado: "VENCIDO", novedad: "Mora crítica" },
+            { cedula: "1032476873", nombre: "BRAYAN STYC HERRERA JIMENEZ", cargo: "Tecnico Mantenimiento O&M Aliado", area: "OYM", cert: "Certificación Técnico Mantenimiento", fechaCert: "15/09/2025", vencimiento: "15/09/2026", dias: -63, estado: "VENCIDO", novedad: "Mora crítica" },
+            { cedula: "93020130", nombre: "ALEXANDER HERNANDEZ ACOSTA", cargo: "Tecnico Mantenimiento O&M Aliado", area: "OYM", cert: "Certificación Técnico Mantenimiento", fechaCert: "15/09/2025", vencimiento: "15/09/2026", dias: -63, estado: "VENCIDO", novedad: "Mora crítica" },
+            { cedula: "1013604584", nombre: "ANDRES FELIPE VALDES SERRANO", cargo: "Tecnico Mantenimiento O&M Aliado", area: "OYM", cert: "Certificación Técnico Mantenimiento", fechaCert: "15/09/2025", vencimiento: "15/09/2026", dias: -63, estado: "VENCIDO", novedad: "Registro duplicado en hoja O&M" },
+            { cedula: "93135744", nombre: "DIEGO ARMANDO VILLANUEVA OSUNA", cargo: "Tecnico O&M Fijo Aliado", area: "OYM", cert: "Certificación Técnico O&M 2025", fechaCert: "16/09/2025", vencimiento: "16/09/2026", dias: -62, estado: "VENCIDO", novedad: "Mora crítica" },
+            { cedula: "1023906267", nombre: "JESUS DANIEL BERMUDEZ GRANADOS", cargo: "Tecnico O&M Fijo Aliado", area: "OYM", cert: "Certificación Técnico Mantenimiento", fechaCert: "16/09/2025", vencimiento: "16/09/2026", dias: -62, estado: "VENCIDO", novedad: "Registro duplicado en hoja O&M" },
+            { cedula: "83169413", nombre: "FREDY RAMIREZ RAMIREZ", cargo: "Auxiliar O&M Aliado", area: "OYM", cert: "Certificación Auxiliar O&M - 2025", fechaCert: "17/09/2025", vencimiento: "17/09/2026", dias: -61, estado: "VENCIDO", novedad: "Mora crítica Auxiliar O&M" },
+            { cedula: "1073174691", nombre: "FABIAN ALBERTO TORRES ARISMENDY", cargo: "Tecnico O&M Fijo Aliado", area: "OYM", cert: "Certificación Técnico Mantenimiento", fechaCert: "17/09/2025", vencimiento: "17/09/2026", dias: -61, estado: "VENCIDO", novedad: "Mora crítica" },
+            { cedula: "80757032", nombre: "JOEL MARTINEZ WILCHES", cargo: "Tecnico Mantenimiento O&M Aliado", area: "OYM", cert: "Certificación Técnico O&M 2025", fechaCert: "17/09/2025", vencimiento: "17/09/2026", dias: -61, estado: "VENCIDO", novedad: "Mora crítica" },
+            { cedula: "1033768956", nombre: "WILLIAM FERNANDO VELASQUEZ CANO", cargo: "Tecnico Mantenimiento O&M Aliado", area: "OYM", cert: "Certificación Técnico O&M 2025", fechaCert: "17/09/2025", vencimiento: "17/09/2026", dias: -61, estado: "VENCIDO", novedad: "Mora crítica" },
+            { cedula: "1105680602", nombre: "GABRIEL RAMON SALAZAR CANDIA", cargo: "Tecnico Empalmador Aliado", area: "OYM", cert: "Certificación Empalmador Fibra Óptica", fechaCert: "05/11/2025", vencimiento: "05/11/2026", dias: -11, estado: "VENCIDO", novedad: "Vencido reciente" },
+            { cedula: "1050672416", nombre: "PEDRO ISAIAS SIERRA CASTILLO", cargo: "Tecnico Instalaciones UMM Aliado", area: "OPERACIONES", cert: "Certificación Técnico Instalaciones", fechaCert: "20/11/2025", vencimiento: "20/11/2026", dias: 3, estado: "PROXIMO", novedad: "" },
+            { cedula: "1143833247", nombre: "JULIAN OCAMPO GONZALEZ", cargo: "Tecnico Instalaciones UMM Aliado", area: "OPERACIONES", cert: "Certificación Técnico Instalaciones", fechaCert: "21/11/2025", vencimiento: "21/11/2026", dias: 4, estado: "PROXIMO", novedad: "" },
+            { cedula: "1193566389", nombre: "ANDRES DAVID BERNAL GALVIS", cargo: "Tecnico Instalaciones UMM Aliado", area: "OPERACIONES", cert: "Certificación Técnico Instalaciones", fechaCert: "21/11/2025", vencimiento: "21/11/2026", dias: 4, estado: "PROXIMO", novedad: "" },
+            { cedula: "1073715961", nombre: "DIEGO ALEJANDRO MEJIA ROA", cargo: "Auxiliar Operaciones Aliado", area: "OPERACIONES", cert: "Certificación Auxiliar I&M-UMM", fechaCert: "21/11/2025", vencimiento: "21/11/2026", dias: 4, estado: "PROXIMO", novedad: "" },
+            { cedula: "1000329733", nombre: "JUAN ESTEBAN QUINTERO FIQUE", cargo: "Tecnico Instalaciones UMM Aliado", area: "OPERACIONES", cert: "Certificación Técnico Instalaciones", fechaCert: "22/11/2025", vencimiento: "22/11/2026", dias: 5, estado: "PROXIMO", novedad: "" },
+            { cedula: "1233901214", nombre: "JEISON GILBERTO CORTES BECERRA", cargo: "Tecnico Instalaciones UMM Aliado", area: "OPERACIONES", cert: "Certificación Técnico Instalaciones", fechaCert: "22/11/2025", vencimiento: "22/11/2026", dias: 5, estado: "PROXIMO", novedad: "" },
+            { cedula: "1063560283", nombre: "ENDER CENTENO LIMA", cargo: "Tecnico Instalaciones UMM Aliado", area: "OPERACIONES", cert: "Certificación Auxiliar I&M-UMM", fechaCert: "25/11/2025", vencimiento: "25/11/2026", dias: 8, estado: "PROXIMO", novedad: "" },
+            { cedula: "1032449824", nombre: "RUBEN DARIO RUEDA RAMIREZ", cargo: "Tecnico Instalaciones UMM Aliado", area: "OPERACIONES", cert: "Certificación Técnico Instalaciones", fechaCert: "01/12/2025", vencimiento: "01/12/2026", dias: 14, estado: "PROXIMO", novedad: "" },
+            { cedula: "7459771", nombre: "ISRAEL GUILLERMO ESPIN TORRES", cargo: "Tecnico Instalaciones UMM Aliado", area: "OPERACIONES", cert: "Certificación Técnico Instalaciones", fechaCert: "05/12/2025", vencimiento: "05/12/2026", dias: 18, estado: "PROXIMO", novedad: "" },
+            { cedula: "1073514012", nombre: "NICOLAS RISCANEVO POBLADOR", cargo: "Tecnico Instalaciones UMM Aliado", area: "OPERACIONES", cert: "SIN HISTORIAL DE APRENDIZAJE", fechaCert: "10/12/2025", vencimiento: "10/12/2026", dias: 23, estado: "SIN_HISTORIAL", novedad: "Sin historial" },
+            { cedula: "1052094090", nombre: "MARBELIS PINEDA GAMARRA", cargo: "Auxiliar Operaciones Aliado", area: "OPERACIONES", cert: "Certificación Auxiliar I&M-UMM", fechaCert: "10/12/2025", vencimiento: "10/12/2026", dias: 23, estado: "PROXIMO", novedad: "" }
+        ];
+
+        // Dataset de Asistencia por Grupo (Extraído de Control asistencias: G41, G42, G43, G44)
+        const groupAttendanceDatabase = {
+            "G41": {
+                formador: "Jolman Talero",
+                ingreso: "19/10/2026",
+                primerIntento: "10/11/2026",
+                totalInscritos: 25,
+                estadoGrupo: "Cierre de Notas Pendiente",
+                diasHeaders: ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15", "D16"],
+                alumnos: [
+                    { cc: "203-101", cedula: "1014860160", nombre: "SANTIAGO CHACON CARDENAS", cargo: "TECNICO", dias: ["SI","SI","INC","SI","TD","SI","SI","SI","SI","TD","SI","SI","SI","SI","SI",""], alerta: "NORMAL" },
+                    { cc: "203-111", cedula: "1967759", nombre: "EDGAR BRACHO HERNANDEZ", cargo: "TECNICO", dias: ["SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI",""], alerta: "NORMAL" },
+                    { cc: "203-101", cedula: "1031166766", nombre: "SEBASTIAN DELGADILLO CARO", cargo: "TECNICO", dias: ["SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI",""], alerta: "NORMAL" }
+                ]
+            },
+            "G42": {
+                formador: "Miguel González",
+                ingreso: "23/10/2026",
+                primerIntento: "17/11/2026",
+                totalInscritos: 14,
+                estadoGrupo: "Certificación Primer Intento Hoy",
+                diasHeaders: ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15", "D16"],
+                alumnos: [
+                    { cc: "203-101", cedula: "1013687757", nombre: "EIVERSSON ANDREY JIMENEZ", cargo: "TECNICO", dias: ["SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","","",""], alerta: "NORMAL" },
+                    { cc: "203-101", cedula: "1001804030", nombre: "JULIO ENRIQUE CARO SEQUEA", cargo: "TECNICO", dias: ["SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","","",""], alerta: "NORMAL" },
+                    { cc: "203-101", cedula: "1010122898", nombre: "LAURA MARCELA CANTILLO", cargo: "TECNICO AUXILIAR", dias: ["SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","","",""], alerta: "NORMAL" }
+                ]
+            },
+            "G43": {
+                formador: "Duber Muñoz",
+                ingreso: "30/10/2026",
+                primerIntento: "24/11/2026",
+                totalInscritos: 22,
+                estadoGrupo: "En Curso (Día 11 - Trabajo Espacios)",
+                diasHeaders: ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15", "D16"],
+                alumnos: [
+                    { cc: "203-101", cedula: "1022324953", nombre: "ERICK JEAN PAUL ALONSO", cargo: "TECNICO AUXILIAR", dias: ["NO","TD","SI","NO","SI","SI","SI","SI","SI","SI","SI","","","","",""], alerta: "SEGUIMIENTO" },
+                    { cc: "203-101", cedula: "1023904066", nombre: "DELTHON STEVENS LOZANO", cargo: "TECNICO", dias: ["SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","SI","","","","",""], alerta: "NORMAL" },
+                    { cc: "203-111", cedula: "1235241238", nombre: "LEONARDO JOSE SIERRA", cargo: "TECNICO", dias: ["SI","TD","SI","SI","SI","SI","SI","SI","SI","SI","SI","","","","",""], alerta: "NORMAL" }
+                ]
+            },
+            "G44": {
+                formador: "Nestor Basante",
+                ingreso: "09/11/2026",
+                primerIntento: "01/12/2026",
+                totalInscritos: 13,
+                estadoGrupo: "En Curso (Día 6 - Módulo 6)",
+                diasHeaders: ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15", "D16"],
+                alumnos: [
+                    { cc: "203-101", cedula: "80864644", nombre: "PABLO ENRIQUE DIAZ SANCHEZ", cargo: "TECNICO", dias: ["SI","SI","TD","SI","SI","SI","","","","","","","","","",""], alerta: "NORMAL" },
+                    { cc: "203-101", cedula: "72232404", nombre: "JAVIER CADENA LIZARAZO", cargo: "TECNICO", dias: ["SI","SI","SI","SI","SI","SI","","","","","","","","","",""], alerta: "NORMAL" },
+                    { cc: "203-101", cedula: "79691109", nombre: "JOHN ALEXANDER ALVAREZ", cargo: "TECNICO", dias: ["SI","SI","SI","SI","SI","SI","","","","","","","","","",""], alerta: "NORMAL" }
+                ]
+            }
+        };
+
+        // Estado global de filtros y gráficos
+        let chartMode = 'percent';
+        let cargoChartInstance = null;
+        let doughnutChartInstance = null;
+        let campaignsChartInstance = null;
+        let utcChartInstance = null;
+        let oymCargoChartInstance = null;
+        let oymCalibChartInstance = null;
+        let currentCitationText = '';
+
+        // =========================================================================
+        // 2. INICIALIZACIÓN
+        // =========================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initCharts();
+            applyFilters();
+            renderOYMTable();
+            renderGroupAttendanceTable();
+        });
+
+        // =========================================================================
+        // 3. NAVEGACIÓN POR PESTAÑAS & TEMA
+        // =========================================================================
+        function switchTab(tabName) {
+            const tabs = ['resumen', 'alertas', 'campanas', 'oym', 'formadores'];
+            tabs.forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                const btn = document.getElementById(`tab-${t}`);
+                btn.classList.remove('tab-active');
+                btn.classList.add('text-zinc-500', 'dark:text-zinc-400');
+            });
+
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            activeBtn.classList.add('tab-active');
+            activeBtn.classList.remove('text-zinc-500', 'dark:text-zinc-400');
+
+            if (tabName === 'campanas' && campaignsChartInstance) campaignsChartInstance.resize();
+            if (tabName === 'formadores' && utcChartInstance) utcChartInstance.resize();
+            if (tabName === 'oym') {
+                if (oymCargoChartInstance) oymCargoChartInstance.resize();
+                if (oymCalibChartInstance) oymCalibChartInstance.resize();
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.classList.toggle('dark');
+            document.getElementById('moonIcon').classList.toggle('hidden', isDark);
+            document.getElementById('sunIcon').classList.toggle('hidden', !isDark);
+            updateChartThemes(isDark);
+        }
+
+        // =========================================================================
+        // 4. FILTROS GLOBALES Y RENDERIZADO DE TABLAS
+        // =========================================================================
+        function applyFilters() {
+            const segment = document.getElementById('filterSegment').value;
+            const cargo = document.getElementById('filterCargo').value;
+            const status = document.getElementById('filterStatus').value;
+            const search = document.getElementById('searchInput').value.toLowerCase().trim();
+
+            const filteredCargos = cargoMetricsData.filter(item => {
+                const matchSeg = segment === 'ALL' || item.segment === segment;
+                const matchCargo = cargo === 'ALL' || item.cargo === cargo;
+                const matchSearch = !search || item.cargo.toLowerCase().includes(search) || item.segment.toLowerCase().includes(search);
+                return matchSeg && matchCargo && matchSearch;
+            });
+
+            renderCargoTable(filteredCargos);
+            updateKPIs(filteredCargos);
+
+            if (cargoChartInstance) {
+                cargoChartInstance.data = getCargoChartData(filteredCargos, chartMode);
+                cargoChartInstance.options.scales.x.max = chartMode === 'percent' ? 100 : undefined;
+                cargoChartInstance.update();
+            }
+
+            const filteredNominal = nominalAlertsData.filter(item => {
+                const matchSeg = segment === 'ALL' || item.area === segment;
+                const matchCargo = cargo === 'ALL' || item.cargo === cargo;
+                const matchStatus = status === 'ALL' || item.estado === status;
+                const matchSearch = !search || item.nombre.toLowerCase().includes(search) || item.cedula.includes(search) || item.cargo.toLowerCase().includes(search);
+                return matchSeg && matchCargo && matchStatus && matchSearch;
+            });
+
+            renderNominalTable(filteredNominal);
+            renderOYMTable();
+        }
+
+        function updateKPIs(data) {
+            let total = 0, vig = 0, prox = 0, ven = 0, sin = 0;
+            data.forEach(d => {
+                total += d.total;
+                vig += d.vigente;
+                prox += d.proximo;
+                ven += d.vencido;
+                sin += d.sinHistorial;
+            });
+
+            const pctVig = total ? ((vig / total) * 100).toFixed(1) : '0.0';
+            const pctProx = total ? ((prox / total) * 100).toFixed(1) : '0.0';
+            const pctVen = total ? ((ven / total) * 100).toFixed(1) : '0.0';
+            const pctSin = total ? ((sin / total) * 100).toFixed(1) : '0.0';
+
+            document.getElementById('kpi-total').textContent = total.toLocaleString('es-CO');
+            document.getElementById('kpi-vigente-pct').textContent = `${pctVig}%`;
+            document.getElementById('kpi-vigente-num').textContent = `(${vig.toLocaleString('es-CO')} pers.)`;
+            document.getElementById('kpi-vigente-bar').style.width = `${pctVig}%`;
+            document.getElementById('kpi-proximo-num').textContent = prox;
+            document.getElementById('kpi-proximo-pct').textContent = `(${pctProx}%)`;
+            document.getElementById('kpi-vencido-num').textContent = ven;
+            document.getElementById('kpi-vencido-pct').textContent = `(${pctVen}%)`;
+            document.getElementById('kpi-sin-num').textContent = sin;
+            document.getElementById('kpi-sin-pct').textContent = `(${pctSin}%)`;
+        }
+
+        function setChartMode(mode) {
+            chartMode = mode;
+            const btnPct = document.getElementById('btn-mode-pct');
+            const btnCnt = document.getElementById('btn-mode-cnt');
+            if (mode === 'percent') {
+                btnPct.className = "px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-700 shadow-xs font-semibold text-zinc-900 dark:text-white transition";
+                btnCnt.className = "px-2.5 py-1 rounded-lg text-zinc-500 dark:text-zinc-400 font-medium transition";
+            } else {
+                btnCnt.className = "px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-700 shadow-xs font-semibold text-zinc-900 dark:text-white transition";
+                btnPct.className = "px-2.5 py-1 rounded-lg text-zinc-500 dark:text-zinc-400 font-medium transition";
+            }
+            applyFilters();
+        }
+
+        function filterNominalAlert(statusType) {
+            document.getElementById('filterStatus').value = statusType;
+            applyFilters();
+        }
+
+        function getCargoChartData(data, mode) {
+            return {
+                labels: data.map(d => d.cargo.length > 28 ? d.cargo.substring(0, 26) + '...' : d.cargo),
+                datasets: [
+                    {
+                        label: 'Vigente',
+                        data: data.map(d => mode === 'percent' ? Number(((d.vigente / d.total) * 100).toFixed(1)) : d.vigente),
+                        backgroundColor: '#10b981',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Próximo (1-30d)',
+                        data: data.map(d => mode === 'percent' ? Number(((d.proximo / d.total) * 100).toFixed(1)) : d.proximo),
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Vencido',
+                        data: data.map(d => mode === 'percent' ? Number(((d.vencido / d.total) * 100).toFixed(1)) : d.vencido),
+                        backgroundColor: '#dc2626',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Sin Historial',
+                        data: data.map(d => mode === 'percent' ? Number(((d.sinHistorial / d.total) * 100).toFixed(1)) : d.sinHistorial),
+                        backgroundColor: '#a1a1aa',
+                        borderRadius: 4
+                    }
+                ]
+            };
+        }
+
+        function renderCargoTable(data) {
+            const tbody = document.getElementById('cargoTableBody');
+            const tfoot = document.getElementById('cargoTableFoot');
+            tbody.innerHTML = '';
+
+            let sumTotal = 0, sumVig = 0, sumProx = 0, sumVen = 0, sumSin = 0;
+
+            data.forEach(row => {
+                sumTotal += row.total;
+                sumVig += row.vigente;
+                sumProx += row.proximo;
+                sumVen += row.vencido;
+                sumSin += row.sinHistorial;
+
+                const pct = ((row.vigente / row.total) * 100).toFixed(1);
+                let barColor = 'bg-emerald-500';
+                let badgeClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300';
+                if (pct < 65) {
+                    barColor = 'bg-red-600';
+                    badgeClass = 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300';
+                } else if (pct < 85) {
+                    barColor = 'bg-amber-500';
+                    badgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300';
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition";
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-semibold text-zinc-900 dark:text-white">${row.cargo}</td>
+                    <td class="py-3 px-3">
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                            ${row.segment}
+                        </span>
+                    </td>
+                    <td class="py-3 px-3 text-right font-bold">${row.total}</td>
+                    <td class="py-3 px-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">${row.vigente}</td>
+                    <td class="py-3 px-3 text-right font-semibold text-amber-600 dark:text-amber-400">${row.proximo}</td>
+                    <td class="py-3 px-3 text-right font-bold text-red-600 dark:text-red-400">${row.vencido}</td>
+                    <td class="py-3 px-3 text-right text-zinc-500">${row.sinHistorial}</td>
+                    <td class="py-3 px-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-full bg-zinc-200 dark:bg-zinc-800 rounded-full h-2">
+                                <div class="${barColor} h-2 rounded-full" style="width: ${pct}%"></div>
+                            </div>
+                            <span class="font-bold w-12 text-right">${pct}%</span>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badgeClass}">${row.riesgo}</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const totalPct = sumTotal ? ((sumVig / sumTotal) * 100).toFixed(1) : '0.0';
+            tfoot.innerHTML = `
+                <tr>
+                    <td class="py-3.5 px-4 text-zinc-900 dark:text-white">TOTAL CONSOLIDADO</td>
+                    <td class="py-3.5 px-3"></td>
+                    <td class="py-3.5 px-3 text-right">${sumTotal}</td>
+                    <td class="py-3.5 px-3 text-right text-emerald-600 dark:text-emerald-400">${sumVig}</td>
+                    <td class="py-3.5 px-3 text-right text-amber-600 dark:text-amber-400">${sumProx}</td>
+                    <td class="py-3.5 px-3 text-right text-red-600 dark:text-red-400">${sumVen}</td>
+                    <td class="py-3.5 px-3 text-right text-zinc-500">${sumSin}</td>
+                    <td class="py-3.5 px-4 text-right text-emerald-600 dark:text-emerald-400">${totalPct}% Vigente</td>
+                    <td class="py-3.5 px-4 text-center text-[11px] text-red-600 dark:text-red-400">Brecha: ${sumProx + sumVen + sumSin}</td>
+                </tr>
+            `;
+        }
+
+        function renderNominalTable(data) {
+            const tbody = document.getElementById('nominalTableBody');
+            document.getElementById('nominalCountBadge').textContent = `Mostrando ${data.length} registros críticos`;
+            tbody.innerHTML = '';
+
+            data.forEach(item => {
+                let badge = '';
+                if (item.estado === 'VENCIDO') {
+                    badge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">Vencido (${Math.abs(item.dias)}d)</span>`;
+                } else if (item.estado === 'PROXIMO') {
+                    badge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-200 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">Vence en ${item.dias}d</span>`;
+                } else {
+                    badge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">Sin Historial</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition";
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-mono text-[11px] text-zinc-600 dark:text-zinc-400">${item.cedula}</td>
+                    <td class="py-3 px-4 font-semibold text-zinc-900 dark:text-white">${item.nombre}</td>
+                    <td class="py-3 px-3 text-zinc-700 dark:text-zinc-300">${item.cargo}</td>
+                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800">${item.area}</span></td>
+                    <td class="py-3 px-3 text-zinc-500 dark:text-zinc-400">${item.cert}</td>
+                    <td class="py-3 px-3 font-medium">${item.vencimiento}</td>
+                    <td class="py-3 px-3">${badge}</td>
+                    <td class="py-3 px-4 text-right">
+                        <button onclick='openCitationModal(${JSON.stringify(item)})' class="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-semibold transition">
+                            Citar
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // =========================================================================
+        // 5. GRÁFICOS INTERACTIVOS (PALETA ROJO, BLANCO Y GRIS)
+        // =========================================================================
+        function initCharts() {
+            // 1. Gráfico de Barras Apiladas por Cargo
+            const ctxCargo = document.getElementById('cargoChart').getContext('2d');
+            cargoChartInstance = new Chart(ctxCargo, {
+                type: 'bar',
+                data: getCargoChartData(cargoMetricsData, 'percent'),
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11, family: 'Inter' } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    const suffix = chartMode === 'percent' ? '%' : ' técnicos';
+                                    return ` ${ctx.dataset.label}: ${ctx.raw}${suffix}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            max: chartMode === 'percent' ? 100 : undefined,
+                            grid: { color: 'rgba(113, 113, 122, 0.15)' },
+                            ticks: { font: { size: 11 } }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { display: false },
+                            ticks: { font: { size: 11, weight: '500' } }
+                        }
+                    }
+                }
+            });
+
+            // 2. Gráfico de Dona Global
+            const ctxDoughnut = document.getElementById('statusDoughnutChart').getContext('2d');
+            doughnutChartInstance = new Chart(ctxDoughnut, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Vigente', 'Próximo (1-30d)', 'Vencido', 'Sin Historial'],
+                    datasets: [{
+                        data: [1018, 112, 100, 90],
+                        backgroundColor: ['#10b981', '#f59e0b', '#dc2626', '#a1a1aa'],
+                        borderWidth: 0,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // 3. Gráfico de Campañas (Excelencia & Recertificación)
+            const ctxCamp = document.getElementById('campaignsChart').getContext('2d');
+            campaignsChartInstance = new Chart(ctxCamp, {
+                type: 'bar',
+                data: {
+                    labels: [
+                        'Excelencia Ciclo 5 (Técnicos UMM)',
+                        'Recertificación: Técnicos UMM',
+                        'Recertificación: Auxiliares Ops',
+                        'Recertificación: Supervisores'
+                    ],
+                    datasets: [
+                        {
+                            label: 'Certificados (Aprobados 90-100%)',
+                            data: [364, 48, 13, 6],
+                            backgroundColor: '#10b981',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Pendientes / No Presentados',
+                            data: [377, 16, 5, 2],
+                            backgroundColor: '#dc2626',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                        y: { grid: { color: 'rgba(113, 113, 122, 0.15)' }, ticks: { font: { size: 11 } } }
+                    }
+                }
+            });
+
+            // 4. Gráfico de Formadores UTC
+            const ctxUtc = document.getElementById('utcTrainersChart').getContext('2d');
+            utcChartInstance = new Chart(ctxUtc, {
+                type: 'bar',
+                data: {
+                    labels: [
+                        'Nestor Basante',
+                        'Jolman Talero',
+                        'Duber Muñoz',
+                        'Miguel González',
+                        'Sebastián Merchán',
+                        'José D. Rubiano',
+                        'Juan F. Villamil'
+                    ],
+                    datasets: [
+                        {
+                            label: 'Sesiones Reportadas UTC',
+                            data: [29, 25, 24, 24, 21, 18, 18],
+                            backgroundColor: '#dc2626',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(113, 113, 122, 0.15)' }, ticks: { font: { size: 11 } } }
+                    }
+                }
+            });
+
+            // 5. Gráfico de Barras por Cargo Red Externa O&M (Incluyendo Auxiliar O&M Aliado)
+            const ctxOymCargo = document.getElementById('oymCargoChart').getContext('2d');
+            oymCargoChartInstance = new Chart(ctxOymCargo, {
+                type: 'bar',
+                data: {
+                    labels: [
+                        'Técnico Mant. O&M',
+                        'Técnico O&M Fijo',
+                        'Empalmador Aliado',
+                        'Auxiliar O&M Aliado',
+                        'Medidor / Recorredor'
+                    ],
+                    datasets: [
+                        {
+                            label: 'Vigente',
+                            data: [81, 37, 23, 11, 7],
+                            backgroundColor: '#10b981',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Próx. 30 días',
+                            data: [11, 6, 3, 1, 1],
+                            backgroundColor: '#f59e0b',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Vencido (Mora)',
+                            data: [42, 21, 8, 4, 3],
+                            backgroundColor: '#dc2626',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Sin Historial',
+                            data: [8, 4, 2, 2, 1],
+                            backgroundColor: '#a1a1aa',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+                    },
+                    scales: {
+                        x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
+                        y: { stacked: true, grid: { color: 'rgba(113, 113, 122, 0.15)' }, ticks: { font: { size: 11 } } }
+                    }
+                }
+            });
+
+            // 6. Gráfico de Dona Certificaciones Red Externa O&M
+            const ctxOymCalib = document.getElementById('oymCalibChart').getContext('2d');
+            oymCalibChartInstance = new Chart(ctxOymCalib, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Mantenimiento / O&M (210)', 'Empalmador Fibra (36)', 'Auxiliar O&M Aliado (18)', 'Medidor / Recorredor (12)'],
+                    datasets: [{
+                        data: [210, 36, 18, 12],
+                        backgroundColor: ['#27272a', '#71717a', '#dc2626', '#d4d4d8'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '68%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function updateChartThemes(isDark) {
+            const textColor = isDark ? '#d4d4d8' : '#3f3f46';
+            [cargoChartInstance, campaignsChartInstance, utcChartInstance, oymCargoChartInstance, oymCalibChartInstance].forEach(chart => {
+                if (!chart) return;
+                if (chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+                    chart.options.plugins.legend.labels.color = textColor;
+                }
+                if (chart.options.scales && chart.options.scales.x) chart.options.scales.x.ticks.color = textColor;
+                if (chart.options.scales && chart.options.scales.y) chart.options.scales.y.ticks.color = textColor;
+                chart.update();
+            });
+        }
+
+        // =========================================================================
+        // 5.5 RENDERIZADO TABLA EXCLUSIVA RED EXTERNA (O&M)
+        // =========================================================================
+        function renderOYMTable() {
+            const tbody = document.getElementById('oymTableBody');
+            if (!tbody) return;
+
+            const cargoFilter = document.getElementById('oymFilterCargo')?.value || 'ALL';
+            const search = document.getElementById('searchInput')?.value.toLowerCase().trim() || '';
+
+            const oymList = nominalAlertsData.filter(item => {
+                const isOYM = item.area === 'OYM' || item.cargo.toUpperCase().includes('O&M') || item.cargo.toUpperCase().includes('EMPALMADOR');
+                const matchCargo = cargoFilter === 'ALL' || item.cargo === cargoFilter;
+                const matchSearch = !search || item.nombre.toLowerCase().includes(search) || item.cedula.includes(search);
+                return isOYM && matchCargo && matchSearch;
+            });
+
+            tbody.innerHTML = '';
+            oymList.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition";
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-mono text-[11px] text-zinc-600 dark:text-zinc-400">${item.cedula}</td>
+                    <td class="py-3 px-4">
+                        <div class="font-semibold text-zinc-900 dark:text-white">${item.nombre}</div>
+                        ${item.novedad.includes('duplicado') ? `<span class="text-[10px] text-red-600 dark:text-red-400 font-medium">⚠ ${item.novedad}</span>` : ''}
+                    </td>
+                    <td class="py-3 px-3 font-medium text-zinc-700 dark:text-zinc-300">${item.cargo}</td>
+                    <td class="py-3 px-3 text-zinc-500 dark:text-zinc-400">${item.cert}</td>
+                    <td class="py-3 px-3 text-zinc-500">${item.fechaCert || '-'}</td>
+                    <td class="py-3 px-3 font-semibold text-zinc-800 dark:text-zinc-200">${item.vencimiento}</td>
+                    <td class="py-3 px-3">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
+                            VENCIDO HACE ${Math.abs(item.dias)} DÍAS
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                        <button onclick='openCitationModal(${JSON.stringify(item)})' class="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold transition">
+                            Citar O&M
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportOYMCSV() {
+            const oymList = nominalAlertsData.filter(item => item.area === 'OYM');
+            let csv = "Cedula,Nombre,Cargo_SSFF,Certificacion,Fecha_Certificacion,Fecha_Vencimiento,Dias_Mora,Observacion\n";
+            oymList.forEach(r => {
+                csv += `${r.cedula},"${r.nombre}","${r.cargo}","${r.cert}",${r.fechaCert},${r.vencimiento},${Math.abs(r.dias)},"${r.novedad}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Plan_Choque_Recertificacion_Red_Externa_OYM.csv";
+            link.click();
+        }
+
+        // =========================================================================
+        // 5.6 VISUALIZADOR DE ASISTENCIA POR GRUPO EN FORMACIÓN
+        // =========================================================================
+        function selectGroupAttendance(groupCode) {
+            const selector = document.getElementById('groupSelector');
+            if (selector) {
+                selector.value = groupCode;
+                renderGroupAttendanceTable();
+                document.getElementById('attendanceMatrixSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function renderGroupAttendanceTable() {
+            const groupCode = document.getElementById('groupSelector')?.value || 'G43';
+            const groupData = groupAttendanceDatabase[groupCode];
+            if (!groupData) return;
+
+            document.getElementById('attendanceGroupSubtitle').innerHTML = `
+                Formador responsable: <strong class="text-zinc-900 dark:text-white">${groupData.formador}</strong> • 
+                Fecha ingreso: <strong>${groupData.ingreso}</strong> • 
+                Primer intento certificación: <strong>${groupData.primerIntento}</strong>
+            `;
+
+            // Resumen numérico del grupo
+            const summaryDiv = document.getElementById('groupAttendanceSummary');
+            summaryDiv.innerHTML = `
+                <div class="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <span class="text-zinc-400 block text-[11px]">Grupo Activo</span>
+                    <span class="font-extrabold text-sm text-red-600">${groupCode} (${groupData.totalInscritos} inscritos)</span>
+                </div>
+                <div class="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <span class="text-zinc-400 block text-[11px]">Formador Asignado</span>
+                    <span class="font-bold text-sm text-zinc-900 dark:text-white">${groupData.formador}</span>
+                </div>
+                <div class="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <span class="text-zinc-400 block text-[11px]">Fecha Primer Intento</span>
+                    <span class="font-bold text-sm text-zinc-900 dark:text-white">${groupData.primerIntento}</span>
+                </div>
+                <div class="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <span class="text-zinc-400 block text-[11px]">Estado Operativo</span>
+                    <span class="font-bold text-xs text-zinc-800 dark:text-zinc-200">${groupData.estadoGrupo}</span>
+                </div>
+            `;
+
+            // Encabezados de días (D1 a D16)
+            const thead = document.getElementById('groupAttendanceHead');
+            thead.innerHTML = `
+                <th class="py-3 px-3">C.C</th>
+                <th class="py-3 px-3">Cédula</th>
+                <th class="py-3 px-4">Colaborador en Formación</th>
+                <th class="py-3 px-3">Cargo</th>
+                ${groupData.diasHeaders.map(d => `<th class="py-3 px-1.5 text-center">${d}</th>`).join('')}
+                <th class="py-3 px-3 text-center">% Asist.</th>
+                <th class="py-3 px-3 text-center">Alerta</th>
+            `;
+
+            // Filas de alumnos
+            const tbody = document.getElementById('groupAttendanceBody');
+            tbody.innerHTML = '';
+
+            groupData.alumnos.forEach(al => {
+                let cursados = 0;
+                let asistidos = 0;
+
+                const dayCells = al.dias.map(val => {
+                    if (val !== "") {
+                        cursados++;
+                        if (val === "SI" || val === "TD") asistidos++;
+                    }
+                    if (val === "SI") {
+                        return `<td class="py-2.5 px-1 text-center"><span class="inline-block w-6 py-0.5 rounded bg-zinc-800 dark:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-[10px]">SI</span></td>`;
+                    } else if (val === "TD") {
+                        return `<td class="py-2.5 px-1 text-center"><span class="inline-block w-6 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold text-[10px]">TD</span></td>`;
+                    } else if (val === "INC") {
+                        return `<td class="py-2.5 px-1 text-center"><span class="inline-block w-6 py-0.5 rounded bg-zinc-300 dark:bg-zinc-600 text-zinc-900 dark:text-white font-bold text-[10px]">INC</span></td>`;
+                    } else if (val === "NO") {
+                        return `<td class="py-2.5 px-1 text-center"><span class="inline-block w-6 py-0.5 rounded bg-red-600 text-white font-bold text-[10px]">NO</span></td>`;
+                    } else {
+                        return `<td class="py-2.5 px-1 text-center"><span class="inline-block w-6 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800/50 text-zinc-400 text-[10px]">-</span></td>`;
+                    }
+                }).join('');
+
+                const pctAsist = cursados ? Math.round((asistidos / cursados) * 100) : 100;
+                const alertaBadge = al.alerta === "SEGUIMIENTO"
+                    ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300">SEGUIMIENTO</span>`
+                    : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">NORMAL</span>`;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition";
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 font-mono text-[11px] text-zinc-500">${al.cc}</td>
+                    <td class="py-2.5 px-3 font-mono text-[11px] text-zinc-600 dark:text-zinc-400">${al.cedula}</td>
+                    <td class="py-2.5 px-4 font-semibold text-zinc-900 dark:text-white whitespace-nowrap">${al.nombre}</td>
+                    <td class="py-2.5 px-3 text-[11px] text-zinc-600 dark:text-zinc-300 whitespace-nowrap">${al.cargo}</td>
+                    ${dayCells}
+                    <td class="py-2.5 px-3 text-center font-bold ${pctAsist < 90 ? 'text-red-600' : 'text-zinc-900 dark:text-white'}">${pctAsist}%</td>
+                    <td class="py-2.5 px-3 text-center">${alertaBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // =========================================================================
+        // 6. MODAL DE CITACIÓN Y EXPORTACIÓN CSV
+        // =========================================================================
+        function openCitationModal(person) {
+            const today = "18/11/2026";
+            currentCitationText = `${person.cedula}\t${person.cert}\t${today}\tCoordinación Formación\t17/11/2026 19:30`;
+            document.getElementById('copyBtnText').textContent = "Copiar Fila para Sheets";
+            document.getElementById('modalContent').innerHTML = `
+                <p><strong>Cédula:</strong> ${person.cedula}</p>
+                <p><strong>Colaborador:</strong> ${person.nombre}</p>
+                <p><strong>Cargo:</strong> ${person.cargo}</p>
+                <p><strong>Certificación Requerida:</strong> ${person.cert}</p>
+                <p><strong>Fecha Sugerida Citación:</strong> ${today}</p>
+                <p class="text-[11px] text-red-600 dark:text-red-400 pt-1">Listo para pegar directamente en la pestaña <code>CITACIONES_FORMACION</code> de <em>Indicador General</em>.</p>
+            `;
+            document.getElementById('actionModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('actionModal').classList.add('hidden');
+        }
+
+        function copyCitationRow() {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = currentCitationText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            document.getElementById('copyBtnText').textContent = "¡Copiado al portapapeles!";
+        }
+
+        function exportSummaryCSV() {
+            let csv = "Cargo,Segmento,Total,Vigentes,Proximos_30d,Vencidos,Sin_Historial,Porcentaje_Cumplimiento,Nivel_Riesgo\n";
+            cargoMetricsData.forEach(r => {
+                const pct = ((r.vigente / r.total) * 100).toFixed(1);
+                csv += `"${r.cargo}",${r.segment},${r.total},${r.vigente},${r.proximo},${r.vencido},${r.sinHistorial},${pct}%,"${r.riesgo}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Indicadores_Cumplimiento_Cargos_2026.csv";
+            link.click();
+        }
+    </script>
+</body>
+</html>
